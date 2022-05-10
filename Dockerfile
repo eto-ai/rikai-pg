@@ -11,4 +11,4 @@ COPY sql /build/sql
 COPY Makefile rikai.control dist/*.whl /build/
 RUN cd /build \
 	&& make install \
-	&& pip install --no-cache-dir  /build/*.whl
+	&& pip install --no-cache-dir /build/*.whl
