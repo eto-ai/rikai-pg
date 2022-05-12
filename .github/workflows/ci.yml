@@ -34,12 +34,11 @@ jobs:
     - name: apt update and install
       run: |
         sudo apt -y -qq update
-        sudo apt-get -y -qq install psql
-    - name: Pip install
-      working-directory: python
+        sudo apt-get -y -qq install postgresql-client-common
+    - name: Install
       run: |
-        PYTHONUSERBASE=/opt/hostedtoolcache/rikai/${{ matrix.python-version }} \
-        python -m pip install --user -e .[all,dev]
+        python -m pip install --user -e .
+        make install
     - name: Run python tests
       run: |
         pytest -x -v --durations=10
