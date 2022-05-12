@@ -23,13 +23,14 @@ CREATE FUNCTION ml.version()
 RETURNS TEXT
 AS $$
 	import rikai
-	return rikai.__version__.version
+	return f"rikai: {rikai.__version__.version}"
 $$ LANGUAGE plpython3u;
 
 -- Trigger to create a model inference function after
 -- creating a model entry.
 CREATE FUNCTION ml.create_model_trigger()
 RETURNS TRIGGER
+PARALLEL RESTRICTED
 AS $$
     model_name = TD["new"]["name"]
     plpy.info("Creating model: ", model_name)
@@ -59,3 +60,9 @@ CREATE TRIGGER create_model
 AFTER INSERT ON ml.models
 FOR EACH ROW
 EXECUTE FUNCTION ml.create_model_trigger();
+
+CREATE FUNCTION iou(box1 box, box2 box)
+RETURNS real
+PARALLEL SAFE
+AS $$
+$$ LANGUAGE SQL

@@ -33,21 +33,14 @@ jobs:
         python-version: 3.9
     - name: apt update and install
       run: |
-        sudo apt update
-        sudo apt-get -y -qq install libsnappy-dev ffmpeg
+        sudo apt -y -qq update
+        sudo apt-get -y -qq install psql
     - name: Pip install
       working-directory: python
       run: |
         PYTHONUSERBASE=/opt/hostedtoolcache/rikai/${{ matrix.python-version }} \
         python -m pip install --user -e .[all,dev]
-    - name: Extra bin path
-      run: |
-        echo /opt/hostedtoolcache/rikai/${{ matrix.python-version }}/bin >> $GITHUB_PATH
     - name: Run python tests
-      working-directory: python
       run: |
-        PYTHONUSERBASE=/opt/hostedtoolcache/rikai/${{ matrix.python-version }} pytest -x -v --durations=10 --ignore=tests/parquet/internal
-      env:
-        SPARK_LOCAL_IP: "127.0.0.1"
-        TEST_MLFLOW_TRACKING_URI: "http://localhost:15000"
+        pytest -x -v --durations=10
 
