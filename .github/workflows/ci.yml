@@ -47,6 +47,10 @@ jobs:
       run: |
         python -m pip install --user .[dev]
         make install
+    - name: Run Postgres SQL tests
+      run: pg_prove tests/sql/*.sql
+      env:
+        PGPASSWORD: postgres
     - name: Run python tests
       run: |
         pytest -x -v --durations=10
