@@ -36,7 +36,9 @@ jobs:
         path: pgtap
     - name: install pgtap
       working-directory: pgtap
-      run: make && psql --host localhost --username postgres --dbname postgres --file sql/pgtap.sql
+      run: |
+        make && psql --host localhost --username postgres --dbname postgres --file sql/pgtap.sql
+        sudo cpan TAP::Parser::SourceHandler::pgTAP
       env:
         PGPASSWORD: postgres
     - name: Set up Python
