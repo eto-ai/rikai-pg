@@ -27,6 +27,16 @@ jobs:
       with:
         fetch-depth: 0
         lfs: true
+    - name: Checkout pgtap
+      uses: actions/checkout@v2
+      with:
+        repository: theory/pgtap
+        path: pgtap
+    - name: install pgtap
+      working-directory: pgtap
+      run: make && psql --host localhost --username postgres --dbname postgres --file sql/pgtap.sql
+      env:
+        PGPASSWORD: postgres
     - name: Set up Python
       uses: actions/setup-python@v2
       with:

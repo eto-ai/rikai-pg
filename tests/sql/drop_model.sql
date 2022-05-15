@@ -1,0 +1,4 @@
+BEGIN;
+
+SELECT * FROM finish();
+ROLLBACK;
