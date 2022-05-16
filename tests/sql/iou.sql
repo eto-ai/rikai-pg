@@ -1,4 +1,4 @@
--- Test IOU related tests.
+-- IOU related tests.
 BEGIN;
 
 SELECT plan(3);
