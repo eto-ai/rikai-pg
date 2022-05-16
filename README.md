@@ -52,9 +52,7 @@ $ psql -h localhost -U postgres
 
 ## TODOs
 
-- [ ] Drop model
 - [ ] Support classification models
-- [ ] CI / CD
 - [ ] Release and installation
 
 ## Limitations

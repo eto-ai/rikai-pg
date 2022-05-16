@@ -59,3 +59,19 @@ CREATE TRIGGER create_model
 AFTER INSERT ON ml.models
 FOR EACH ROW
 EXECUTE FUNCTION ml.create_model_trigger();
+
+-- Drop an model
+CREATE FUNCTION ml.delete_model_trigger()
+RETURNS TRIGGER
+AS $$
+BEGIN
+	EXECUTE 'DROP FUNCTION IF EXISTS ml.' || OLD.name;
+	RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER delete_model
+BEFORE DELETE ON ml.models
+FOR EACH ROW
+EXECUTE FUNCTION ml.delete_model_trigger();
+
