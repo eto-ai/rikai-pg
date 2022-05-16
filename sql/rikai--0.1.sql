@@ -75,3 +75,9 @@ BEFORE DELETE ON ml.models
 FOR EACH ROW
 EXECUTE FUNCTION ml.delete_model_trigger();
 
+-- User defined functions
+CREATE FUNCTION iou(box1 box, box2 box)
+RETURNS real
+PARALLEL SAFE
+AS $$ SELECT area(box1 # box2) / (area(box1) + area(box2) - area(box1 # box2)) $$
+LANGUAGE sql;
