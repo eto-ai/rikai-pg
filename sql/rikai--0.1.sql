@@ -26,6 +26,27 @@ AS $$
 	return rikai.__version__.version
 $$ LANGUAGE plpython3u;
 
+CREATE FUNCTION ml.python_version()
+    RETURNS TEXT
+AS $$
+    import sys
+    return sys.version
+$$ LANGUAGE plpython3u;
+
+CREATE FUNCTION ml.python_path()
+    RETURNS TEXT
+AS $$
+    import sys
+    return sys.path
+$$ LANGUAGE plpython3u;
+
+CREATE FUNCTION ml.cuda()
+    RETURNS TEXT
+AS $$
+    import torch
+    return f"Torch {'has' if torch.cuda.is_available() else 'does not have'} access to CUDA"
+$$ LANGUAGE plpython3u;
+
 -- Trigger to create a model inference function after
 -- creating a model entry.
 CREATE FUNCTION ml.create_model_trigger()
