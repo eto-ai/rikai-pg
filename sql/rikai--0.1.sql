@@ -19,15 +19,8 @@ CREATE INDEX IF NOT EXISTS model_flavor_idx
 ON ml.models (flavor, model_type);
 
 -- Functions
-CREATE FUNCTION ml.version()
-RETURNS TEXT
-AS $$
-	import rikai
-	return rikai.__version__.version
-$$ LANGUAGE plpython3u;
-
-CREATE FUNCTION ml.show_info()
-    RETURNS JSON
+CREATE OR REPLACE FUNCTION ml.version()
+    RETURNS table (package varchar, version varchar)
 AS $$
 import sys
 python_version = sys.version.splitlines()[0];
@@ -44,13 +37,11 @@ try:
     torch_version = torch.version.__version__
 except ImportError as exc:
     plpy.error("Could not import torch", exc)
-import json
-return json.dumps({
-    "python": python_version,
-    "rikai": rikai_version,
-    "torch": torch_version,
-    "pythonpath": python_path
-})
+return [
+    ["python", python_version],
+    ["rikai", rikai_version],
+    ["torch", torch_version]
+]
 $$ LANGUAGE plpython3u;
 
 
