@@ -19,11 +19,62 @@ CREATE INDEX IF NOT EXISTS model_flavor_idx
 ON ml.models (flavor, model_type);
 
 -- Functions
-CREATE FUNCTION ml.version()
-RETURNS TEXT
+CREATE OR REPLACE FUNCTION ml.version()
+    RETURNS table (package varchar, version varchar)
 AS $$
-	import rikai
-	return rikai.__version__.version
+import sys
+python_version = sys.version.splitlines()[0];
+python_path = sys.path
+rikai_version = ""
+torch_version = ""
+try:
+    import rikai
+    rikai_version = rikai.__version__.version
+except ImportError as exc:
+    plpy.error("Could not import Rikai", exc)
+try:
+    import torch
+    torch_version = torch.version.__version__
+except ImportError as exc:
+    plpy.error("Could not import torch", exc)
+return [
+    ["python", python_version],
+    ["rikai", rikai_version],
+    ["torch", torch_version]
+]
+$$ LANGUAGE plpython3u;
+
+
+CREATE FUNCTION ml.is_cuda_available()
+    RETURNS BOOL
+AS $$
+import torch
+return torch.cuda.is_available()
+$$ LANGUAGE plpython3u;
+
+
+
+CREATE FUNCTION ml.cuda_info()
+    RETURNS JSON
+AS $$
+import json
+import torch
+def props(device_no):
+    p = torch.cuda.get_device_properties(device_no)
+    return {
+        'name': p.name,
+        'total_memory': p.total_memory,
+        'processor_count': p.multi_processor_count
+    }
+return json.dumps({
+    'version': torch.version.cuda,
+    'seed': torch.cuda.initial_seed(),
+    'device_count': torch.cuda.device_count(),
+    'is_available': torch.cuda.is_available(),
+    'allocated': torch.cuda.memory_allocated(),
+    'reserved': torch.cuda.memory_reserved(),
+    'devices': [props(d) for d in range(torch.cuda.device_count())]
+})
 $$ LANGUAGE plpython3u;
 
 -- Trigger to create a model inference function after

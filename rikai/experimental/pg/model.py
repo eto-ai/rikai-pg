@@ -53,7 +53,7 @@ def load_model(
     flavor: str,
     model_type: str,
     uri: Optional[str] = None,
-    options: Optional[dict[str, str]] = None,
+    options: Optional[dict] = None
 ) -> PgModel:
     # TODO: move load model into rikai core.
     conf = {
