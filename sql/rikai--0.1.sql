@@ -100,9 +100,10 @@ AS $$
     if uri is not None:
         # Quoted URI
         uri = "'{}'".format(uri)
+    return_type = "real[]" if model_type == "features" else "detection[]"
     stmt = (
 		"CREATE FUNCTION ml.{}(img image) ".format(model_name) +
-		"RETURNS detection[] " +
+		f"RETURNS {return_type} " +
 		"AS $BODY$\n" +
         "    from rikai.experimental.pg.model import load_model\n" +
         "    if 'model' not in SD:\n" +

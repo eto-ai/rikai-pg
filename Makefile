@@ -13,7 +13,9 @@ docker:
 .PHONY: docker
 
 run: docker
-	docker run -v ${PWD}/tools/init.sh:/docker-entrypoint-initdb.d/init.sh \
+	docker run \
+		--gpus all \
+		-v ${PWD}/tools/init.sh:/docker-entrypoint-initdb.d/init.sh \
 		-e POSTGRES_HOST_AUTH_METHOD=trust \
 		-p 5432:5432 rikai-pg
 .PHONY: run

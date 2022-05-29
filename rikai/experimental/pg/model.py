@@ -15,6 +15,9 @@
 from typing import Optional
 
 import torch
+import torchvision
+import torchvision.transforms as T
+from torchvision.models.feature_extraction import create_feature_extractor
 
 from rikai.spark.sql.codegen.dummy import DummyModelSpec
 from rikai.spark.sql.codegen.fs import FileModelSpec
@@ -23,6 +26,7 @@ from rikai.types import Image
 
 
 class PgModel:
+    """Postgres Model"""
     def __init__(self, model_type: ModelType):
         self.model = model_type
 
@@ -48,6 +52,35 @@ class PgModel:
             for pred in preds
         ]
 
+transform = T.Compose(
+            [
+                T.ToTensor(),
+                T.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ]
+        )
+
+class PgEmbeddingModel:
+    def __init__(self):
+        resnet = torchvision.models.resnet50(pretrained=True)
+        self.model = create_feature_extractor(resnet, {"avgpool": "out"})
+        self.model.eval()
+
+    def __repr__(self):
+        return f"PgModel({self.model})"
+
+    def predict(self, img):
+        tensor = transform(Image(img["uri"]).to_numpy()).unsqueeze(0)
+
+        print(tensor)
+        with torch.no_grad():
+            preds = self.model(tensor)
+        print(preds["out"].shape, preds["out"])
+        embeddings = preds["out"][0, :].T[0][0].tolist()
+        print(embeddings, type(embeddings), type(embeddings[0]))
+        return embeddings
+
 
 def load_model(
     flavor: str,
@@ -55,6 +88,9 @@ def load_model(
     uri: Optional[str] = None,
     options: Optional[dict] = None
 ) -> PgModel:
+    if model_type == "features":
+        return PgEmbeddingModel()
+
     # TODO: move load model into rikai core.
     conf = {
         "version": "1.0",

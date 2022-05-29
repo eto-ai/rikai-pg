@@ -7,6 +7,9 @@ CREATE EXTENSION rikai;
 INSERT INTO ml.models (name, flavor, model_type)
 VALUES ('ssd', 'pytorch', 'ssd');
 
+INSERT INTO ml.models (name, flavor, model_type)
+VALUES ('embedding', 'pytorch', 'features');
+
 -- Test data
 -- See images in rikai/tests/conftest.py
 CREATE EXTENSION IF NOT EXISTS pgtap;  -- For unit test
