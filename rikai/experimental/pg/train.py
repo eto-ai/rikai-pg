@@ -11,7 +11,7 @@ import plpy
 from sklearn.decomposition import PCA
 
 
-def train_pca(table: str, columns: Union[str, list[str]], options: Dict):
+def train_pca(table: str, columns: Union[str, list[str]], options: Dict) -> str:
     if isinstance(columns, list):
         raise ValueError("Bad column")
     results = plpy.execute(f"SELECT {columns} FROM {table}")
@@ -21,12 +21,11 @@ def train_pca(table: str, columns: Union[str, list[str]], options: Dict):
     pca.fit(arr)
 
     # log model
-    model_uri = Path("/tmp/models/pca/") / str(uuid.uuid4())
+    model_uri = Path("/tmp/models/pca/") / f"{uuid.uuid4()}.pth"
     model_uri.parent.mkdir(parents=True, exist_ok=True)
     with model_uri.open("wb") as fobj:
         pickle.dump(pca, fobj)
-    return model_uri
-
+    return str(model_uri)
 
 
 def train(
@@ -43,7 +42,8 @@ def train(
     except KeyError:
         plpy.info("Only PCA model is supported")
         return False
-    plpy.execute(f"""
+    plpy.execute(
+        f"""
         INSERT INTO ml.models (name, flavor, model_type, uri, options)
             VALUES (
                 '{name}',
@@ -52,7 +52,8 @@ def train(
                 '{uri}',
                 '{json.dumps(options)}'::json
             );
-    """)
+    """
+    )
     return True
 
 

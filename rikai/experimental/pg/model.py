@@ -12,21 +12,21 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from typing import Optional, Dict
+from typing import Dict, Optional
 
+import plpy
 import torch
 import torchvision
 import torchvision.transforms as T
-from torchvision.models.feature_extraction import create_feature_extractor
-import plpy
-
 from rikai.spark.sql.codegen.dummy import DummyModelSpec
 from rikai.spark.sql.codegen.fs import FileModelSpec
 from rikai.spark.sql.model import ModelType
 from rikai.types import Image
+from rikai.parquet.dataset import convert_tensor
+from torchvision.models.feature_extraction import create_feature_extractor
 
 
-def schema_to_pg_types():
+def schema_to_pg_types(schema: str) -> str:
     pass
 
 
@@ -36,12 +36,16 @@ class PgModel:
     def __init__(self, model_type: ModelType):
         self.model = model_type
 
-    def __repr__(self):
-        return f"PgModel({self.model})"
+    def schema(self) -> str:
+        return self.model.schema()
 
-    def predict(self, img):
-        tensor = torch.tensor(self.model.transform()(Image(img["uri"]).to_numpy()))
-        preds = self.model.predict([tensor])[0]
+    def __repr__(self):
+        return f"PGModel(model={self.model})"
+
+    def predict(self, data):
+        plpy.info(f"Predict data: {data}")
+        data = self.model.transform()(convert_tensor(data))
+        preds = self.model(data)
 
         return [
             {
@@ -57,25 +61,28 @@ class PgModel:
         ]
 
 
-transform = T.Compose(
-    [
-        T.ToTensor(),
-        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ]
-)
-
-
 class PgEmbeddingModel:
+
+    transform = T.Compose(
+        [
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
+
     def __init__(self):
         resnet = torchvision.models.resnet50(pretrained=True)
         self.model = create_feature_extractor(resnet, {"avgpool": "out"})
         self.model.eval()
 
+    def schema(self) -> str:
+        return "array<float>"
+
     def __repr__(self):
         return f"PgModel({self.model})"
 
     def predict(self, img):
-        tensor = transform(Image(img["uri"]).to_numpy()).unsqueeze(0)
+        tensor = self.transform(Image(img["uri"]).to_numpy()).unsqueeze(0)
 
         with torch.no_grad():
             preds = self.model(tensor)
@@ -117,20 +124,23 @@ def create_model_trigger(td: Dict):
     model_type = td["new"]["model_type"]
     uri = td["new"].get("uri")
 
+    model = load_model(flavor, model_type, uri)
     if uri is not None:
         # Quoted URI
         uri = "'{}'".format(uri)
-    model = load_model(flavor, model_type, uri)
+    plpy.info("Loading URI: ", uri)
 
-    return_type = "real[]" if model_type == "features" else "detection[]"
-    args = "img image" if model_type == "features" else "img image"
-    stmt =f"""CREATE FUNCTION ml.{model_name}({args})
+    plpy.info("Schema: ", model.schema())
+    # TODO: this is hacking
+    return_type = "real[]" if model_type in ("features", "pca") else "detection[]"
+    args = "example real[]" if model_type in ("pca") else "example image"
+    stmt = f"""CREATE FUNCTION ml.{model_name}({args})
 RETURNS {return_type}
 AS $BODY$
 from rikai.experimental.pg.model import load_model
 if 'model' not in SD:
     plpy.info('Loading model: flavor={flavor} type={model_type})')
     SD['model'] = load_model('{flavor}', '{model_type}', {uri})
-return SD['model'].predict(img)
+return SD['model'].predict(example)
 $BODY$ LANGUAGE plpython3u;"""
     plpy.execute(stmt)
