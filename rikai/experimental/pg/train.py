@@ -10,17 +10,21 @@ import numpy as np
 import plpy
 from sklearn.decomposition import PCA
 
+DEFAULT_PCA_COMPONENTS = 2
 
-def train_pca(table: str, columns: Union[str, list[str]], options: Dict) -> str:
+
+def train_pca(
+    table: str, columns: Union[str, list[str]], options: Dict[str, any]
+) -> str:
     if isinstance(columns, list):
         raise ValueError("Bad column")
     results = plpy.execute(f"SELECT {columns} FROM {table}")
 
     arr = np.array([results[i][columns] for i in range(results.nrows())])
-    pca = PCA(n_components=2)
+    pca = PCA(n_components=options.get("components", DEFAULT_PCA_COMPONENTS))
     pca.fit(arr)
 
-    # log model
+    # TODO: log model
     model_uri = Path("/tmp/models/pca/") / f"{uuid.uuid4()}.pth"
     model_uri.parent.mkdir(parents=True, exist_ok=True)
     with model_uri.open("wb") as fobj:
@@ -35,7 +39,7 @@ def train(
     columns: Union[str, list[str]],
     options: Optional[Dict] = None,
 ):
-    plpy.info(f"Train model {name}: type={model_type}")
+    plpy.info(f"Training model {name}: flavor=sklearn type={model_type}")
     try:
         train_routine = SUPPORTED_MODEL_TYPES[model_type]
         uri = train_routine(table, columns, options)

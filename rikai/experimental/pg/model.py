@@ -12,17 +12,17 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 import plpy
 import torch
 import torchvision
 import torchvision.transforms as T
+from rikai.parquet.dataset import convert_tensor
 from rikai.spark.sql.codegen.dummy import DummyModelSpec
 from rikai.spark.sql.codegen.fs import FileModelSpec
 from rikai.spark.sql.model import ModelType
 from rikai.types import Image
-from rikai.parquet.dataset import convert_tensor
 from torchvision.models.feature_extraction import create_feature_extractor
 
 
@@ -35,6 +35,7 @@ class PgModel:
 
     def __init__(self, model_type: ModelType):
         self.model = model_type
+        self.transform: Optional[Callable] = self.model.transform()
 
     def schema(self) -> str:
         return self.model.schema()
@@ -44,8 +45,11 @@ class PgModel:
 
     def predict(self, data):
         plpy.info(f"Predict data: {data}")
-        data = self.model.transform()(convert_tensor(data))
-        preds = self.model(data)
+        data = convert_tensor(data)
+        if self.transform:
+            data = self.transform(data)
+        preds = self.model([data])
+        return preds[0]
 
         return [
             {
@@ -128,9 +132,6 @@ def create_model_trigger(td: Dict):
     if uri is not None:
         # Quoted URI
         uri = "'{}'".format(uri)
-    plpy.info("Loading URI: ", uri)
-
-    plpy.info("Schema: ", model.schema())
     # TODO: this is hacking
     return_type = "real[]" if model_type in ("features", "pca") else "detection[]"
     args = "example real[]" if model_type in ("pca") else "example image"
