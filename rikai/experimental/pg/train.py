@@ -20,6 +20,7 @@ def train_pca(
         raise ValueError("Bad column")
     results = plpy.execute(f"SELECT {columns} FROM {table}")
 
+    options = json.loads(options if options else "{}")
     arr = np.array([results[i][columns] for i in range(results.nrows())])
     pca = PCA(n_components=options.get("components", DEFAULT_PCA_COMPONENTS))
     pca.fit(arr)

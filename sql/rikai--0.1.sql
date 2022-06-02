@@ -63,7 +63,6 @@ return torch.cuda.is_available()
 $$ LANGUAGE plpython3u;
 
 
-
 CREATE FUNCTION ml.cuda_info()
     RETURNS JSON
 AS $$
@@ -126,6 +125,19 @@ RETURNS BOOL
 AS $$
     from rikai.experimental.pg.train import train
     return train(name, model_type, tablename, col)
+$$ LANGUAGE plpython3u;
+
+CREATE FUNCTION ml.train(
+    name TEXT,
+    model_type TEXT,
+    tablename TEXT,
+    col TEXT,
+    options JSONB
+)
+RETURNS BOOL
+AS $$
+    from rikai.experimental.pg.train import train
+    return train(name, model_type, tablename, col, options)
 $$ LANGUAGE plpython3u;
 
 -- Drop an model
