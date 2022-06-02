@@ -28,7 +28,7 @@ docker-test:
 
 test: docker-test
 	docker rm -f pg-test || true
-	docker run -d -v ${PWD}/tools/init.sh:/docker-entrypoint-initdb.d/init.sh \
+	docker run -d -v ${PWD}/.github/init.sh:/docker-entrypoint-initdb.d/init.sh \
 		-v ${PWD}/tests:/opt/tests/ \
 		-e POSTGRES_HOST_AUTH_METHOD=trust \
 		-p 5432:5432 \

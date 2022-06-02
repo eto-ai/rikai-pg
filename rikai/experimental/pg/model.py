@@ -123,7 +123,7 @@ def load_model(
 
 def create_model_trigger(td: Dict):
     model_name = td["new"]["name"]
-    plpy.info("Creating model: ", model_name)
+    plpy.info("Creating model: {model_name}")
     flavor = td["new"]["flavor"]
     model_type = td["new"]["model_type"]
     uri = td["new"].get("uri")
