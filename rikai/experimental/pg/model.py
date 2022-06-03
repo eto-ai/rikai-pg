@@ -1,4 +1,3 @@
-#  Copyright 2022 Rikai Authors
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -14,7 +13,6 @@
 
 from typing import Callable, Dict, Optional
 
-import plpy
 import torch
 import torchvision
 import torchvision.transforms as T
@@ -25,9 +23,8 @@ from rikai.spark.sql.model import ModelType
 from rikai.types import Image
 from torchvision.models.feature_extraction import create_feature_extractor
 
-
-def schema_to_pg_types(schema: str) -> str:
-    pass
+from .schema import parse_schema
+from .logging import info
 
 
 class PgModel:
@@ -44,7 +41,7 @@ class PgModel:
         return f"PGModel(model={self.model})"
 
     def predict(self, data):
-        plpy.info(f"Predict data: {data}")
+        info(f"Predict data: {data}")
         data = convert_tensor(data)
         if self.transform:
             data = self.transform(data)
@@ -123,7 +120,7 @@ def load_model(
 
 def create_model_trigger(td: Dict):
     model_name = td["new"]["name"]
-    plpy.info("Creating model: {model_name}")
+    info("Creating model: {model_name}")
     flavor = td["new"]["flavor"]
     model_type = td["new"]["model_type"]
     uri = td["new"].get("uri")
@@ -132,8 +129,8 @@ def create_model_trigger(td: Dict):
     if uri is not None:
         # Quoted URI
         uri = "'{}'".format(uri)
+    return_type = parse_schema(model.schema())
     # TODO: this is hacking
-    return_type = "real[]" if model_type in ("features", "pca") else "detection[]"
     args = "example real[]" if model_type in ("pca") else "example image"
     stmt = f"""CREATE FUNCTION ml.{model_name}({args})
 RETURNS {return_type}
@@ -144,4 +141,5 @@ if 'model' not in SD:
     SD['model'] = load_model('{flavor}', '{model_type}', {uri})
 return SD['model'].predict(example)
 $BODY$ LANGUAGE plpython3u;"""
+    import plpy
     plpy.execute(stmt)
