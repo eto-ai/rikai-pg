@@ -11,7 +11,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Any
 
 import torch
 import torchvision
@@ -21,6 +21,7 @@ from rikai.spark.sql.codegen.dummy import DummyModelSpec
 from rikai.spark.sql.codegen.fs import FileModelSpec
 from rikai.spark.sql.model import ModelType
 from rikai.types import Image
+from rikai.pytorch.models.torch import ClassificationModelType, ObjectDetectionModelType
 from torchvision.models.feature_extraction import create_feature_extractor
 
 from .schema import parse_schema
@@ -34,36 +35,30 @@ class PgModel:
         self.model = model_type
         self.transform: Optional[Callable] = self.model.transform()
 
+        self._is_vision_type = isinstance(self.model, (ClassificationModelType, ObjectDetectionModelType))
+
     def schema(self) -> str:
         return self.model.schema()
 
     def __repr__(self):
         return f"PGModel(model={self.model})"
 
+    def _pg_to_rikai(self, data) -> Any:
+        if self._is_vision_type:
+            return Image(data["uri"])
+        return data
+
     def predict(self, data):
         info(f"Predict data: {data}")
+        data = self._pg_to_rikai(data)
         data = convert_tensor(data)
         if self.transform:
             data = self.transform(data)
         preds = self.model([data])
         return preds[0]
 
-        return [
-            {
-                "label": pred["label"],
-                "label_id": pred["label_id"],
-                "score": pred["score"],
-                "box": (
-                    (pred["box"].xmin, pred["box"].ymin),
-                    (pred["box"].xmax, pred["box"].ymax),
-                ),
-            }
-            for pred in preds
-        ]
-
 
 class PgEmbeddingModel:
-
     transform = T.Compose(
         [
             T.ToTensor(),
@@ -93,10 +88,10 @@ class PgEmbeddingModel:
 
 
 def load_model(
-    flavor: str,
-    model_type: str,
-    uri: Optional[str] = None,
-    options: Optional[dict] = None,
+        flavor: str,
+        model_type: str,
+        uri: Optional[str] = None,
+        options: Optional[dict] = None,
 ) -> PgModel:
     if model_type == "features":
         return PgEmbeddingModel()

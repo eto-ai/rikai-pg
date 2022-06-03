@@ -24,9 +24,6 @@ docker-test:
 	rm -rf dist
 	python3 setup.py bdist_wheel
 	docker build -t rikai-pg-test --rm -f .github/Dockerfile .
-.PHONY: docker-test
-
-test: docker-test
 	docker rm -f pg-test || true
 	docker run -d -v ${PWD}/.github/init.sh:/docker-entrypoint-initdb.d/init.sh \
 		-v ${PWD}/tests:/opt/tests/ \
@@ -41,5 +38,12 @@ test: docker-test
 	docker exec -t pg-test /bin/bash -c \
 		"pg_prove -v -h localhost -U postgres /opt/tests/sql/*.sql"
 	docker rm -f pg-test
+.PHONY: docker-test
+
+python-test:
+	pytest tests
+.PHONY: python-test
+
+test: python-test docker-test
 .PHONY: test
 
