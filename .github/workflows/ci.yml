@@ -21,7 +21,7 @@ jobs:
         cache: 'pip'
         cache-dependency-path: "setup.py"
     - name: Install python dependencies
-      run: pip install .
+      run: pip install .[dev]
     - name: Run python test
       run: pytest tests
     - name: Build postgres docker image
