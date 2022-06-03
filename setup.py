@@ -25,6 +25,6 @@ setup(
     url="https://github.com/eto-ai/rikai",
     python_requires=">=3.8",
     install_requires=["rikai[pytorch]>=0.1.10"],
-    extras_require={"dev": ["black==22.1.0", "isort", "pytest"]},
+    extras_require={"dev": ["black==22.1.0", "isort", "pytest", "wheel"]},
     packages=find_namespace_packages(include=["rikai.*"]),
 )
