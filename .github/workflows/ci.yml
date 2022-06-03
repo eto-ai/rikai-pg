@@ -19,7 +19,7 @@ jobs:
       with:
         python-version: '3.8'
         cache: 'pip'
-        ache-dependency-path: "setup.py"
+        cache-dependency-path: "setup.py"
     - name: Run python test
       run: pytest tests
     - name: Build postgres docker image
