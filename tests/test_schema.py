@@ -1,7 +1,3 @@
-#!/usr/bin/env python3
-#
-#  Copyright 2022 Rikai Authors
-#
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
@@ -14,17 +10,17 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from setuptools import find_namespace_packages, setup
+from rikai.experimental.pg.schema import parse_schema
 
-setup(
-    name="pg-rikai",
-    version="0.0.1",
-    license="Apache License, Version 2.0",
-    author="Rikai authors",
-    author_email="rikai-dev@eto.ai",
-    url="https://github.com/eto-ai/rikai",
-    python_requires=">=3.8",
-    install_requires=["rikai[pytorch]>=0.1.10"],
-    extras_require={"dev": ["black==22.1.0", "isort", "pytest", "wheel"]},
-    packages=find_namespace_packages(include=["rikai.*"]),
-)
+
+def test_parse_array():
+    assert parse_schema("array<float>") == "REAL[]"
+
+
+def test_object_detection():
+    assert (
+        parse_schema(
+            "array<struct<label: string, label_id: int, box: box2d, score: float>>"
+        )
+        == "detection[]"
+    )
