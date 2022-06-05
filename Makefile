@@ -18,7 +18,7 @@ run: docker
 		-p 5432:5432 rikai-pg
 .PHONY: run
 
-test:
+test: docker
 	docker rm -f pg-test || true
 	docker run -d -v ${PWD}/tools/init.sh:/docker-entrypoint-initdb.d/init.sh \
 		-v ${PWD}/tests:/opt/tests/ \
