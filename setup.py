@@ -17,16 +17,6 @@
 from setuptools import find_namespace_packages, setup
 
 
-dev = [
-    "black==22.1.0",
-    "click<8.1",
-    "isort",
-    "pylint",
-    "pytest-timeout",
-    "pytest",
-    "wheel",
-]
-
 setup(
     name="pg-rikai",
     version="0.0.1",
@@ -38,5 +28,4 @@ setup(
     install_requires=["rikai[pytorch]>=0.1.10"],
     extras_require={"dev": ["black==22.1.0", "isort", "pytest", "wheel"]},
     packages=find_namespace_packages(include=["rikai.*"]),
-    extras_require={"dev": dev},
 )
