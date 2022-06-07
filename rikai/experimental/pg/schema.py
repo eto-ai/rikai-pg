@@ -28,6 +28,9 @@ _POSTGRESQL_TYPE_MAPPING = {
     "binary": "BYTEA",
     "box2d": "BOX",
     "image": "image",
+    "bool": "BOOLEAN",
+    "polygon": "polygon",
+    "point": "point",
 }
 
 
