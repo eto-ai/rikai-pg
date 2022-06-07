@@ -6,6 +6,16 @@ CREATE TYPE image AS (uri TEXT);
 
 CREATE TYPE detection AS (label TEXT, label_id int, box box, score real);
 
+-- rikai.types.Mask
+CREATE TYPE mask_type AS ENUM ('polygon', 'rle', 'coco_rle');
+
+CREATE TYPE mask AS (
+    type mask_type,
+    rle INT[],
+    polygons polygon[],
+    width INT,
+    height INT
+);
 
 -- Tables for ML metadata
 CREATE TABLE ml.models (
