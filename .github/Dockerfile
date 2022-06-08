@@ -3,7 +3,7 @@ FROM postgres:14
 RUN apt-get update -y \
 	&& apt-get install -y -qq git postgresql-plpython3-14 postgresql-server-dev-14 postgresql-14-pgtap make python3-pip \
 	&& apt-get clean \
-	&& pip install --no-cache-dir "git+https://github.com/eddyxu/rikai.git@lei/fs_fixes#subdirectory=python&egg=rikai[pytorch,sklearn]>0.1" \
+	&& pip install --no-cache-dir "git+https://github.com/eto-ai/rikai.git#subdirectory=python&egg=rikai[pytorch,sklearn]>0.1" \
 	&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN mkdir -p /build
