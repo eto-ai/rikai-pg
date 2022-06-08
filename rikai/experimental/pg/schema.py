@@ -20,6 +20,7 @@ __all__ = ["parse_schema"]
 
 _POSTGRESQL_TYPE_MAPPING = {
     "int": "INT",
+    "bigint": "BIGINT",
     "long": "BIGINT",
     "float": "REAL",
     "double": "REAL",
@@ -29,6 +30,7 @@ _POSTGRESQL_TYPE_MAPPING = {
     "box2d": "BOX",
     "image": "image",
     "bool": "BOOLEAN",
+    "boolean": "BOOLEAN",
     "polygon": "polygon",
     "point": "point",
 }
@@ -40,7 +42,7 @@ class PostgresTypeVisitor(RikaiModelSchemaVisitor):
         fields = [self.visitStructField(field) for field in ctx.field()]
         if set(fields) == set(["label TEXT", "label_id INT", "box BOX", "score REAL"]):
             return "detection"
-        raise ValueError(f"Dont know how to supported yet: {fields}")
+        return "jsonb"
 
     def visitStructField(self, ctx: RikaiModelSchemaParser.StructFieldContext) -> str:
         name = self.visit(ctx.identifier())
