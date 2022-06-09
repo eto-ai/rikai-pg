@@ -14,8 +14,6 @@
 import json
 from typing import Any, Callable, Dict, Optional
 
-import torch
-import torchvision
 import torchvision.transforms as T
 from rikai.parquet.dataset import convert_tensor
 from rikai.pytorch.models.torch import ClassificationModelType, ObjectDetectionModelType
@@ -53,7 +51,7 @@ class PgModel:
             return "example real[]"
 
     def __repr__(self):
-        return f"PGModel(model={self.model})"
+        return f"PgModel(model={self.model})"
 
     def _pg_to_rikai(self, data) -> Any:
         if self._is_vision_type:
