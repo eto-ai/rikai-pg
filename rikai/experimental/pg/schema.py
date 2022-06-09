@@ -37,11 +37,13 @@ _POSTGRESQL_TYPE_MAPPING = {
 
 
 class PostgresTypeVisitor(RikaiModelSchemaVisitor):
+
     def visitStructType(self, ctx: RikaiModelSchemaParser.StructTypeContext) -> str:
         # Only support detection type for now
         fields = [self.visitStructField(field) for field in ctx.field()]
         if set(fields) == set(["label TEXT", "label_id INT", "box BOX", "score REAL"]):
             return "detection"
+        # generic structs will just be jsonb columns
         return "jsonb"
 
     def visitStructField(self, ctx: RikaiModelSchemaParser.StructFieldContext) -> str:
@@ -50,7 +52,11 @@ class PostgresTypeVisitor(RikaiModelSchemaVisitor):
         return f"{name} {dataType}"
 
     def visitArrayType(self, ctx: RikaiModelSchemaParser.ArrayTypeContext) -> str:
-        return f"{self.visit(ctx.fieldType())}[]"
+        element_type = self.visit(ctx.fieldType())
+        # json[] / jsonb[] -> json / jsonb
+        if element_type.startswith('json'):
+            return element_type
+        return f"{element_type}[]"
 
     def visitUnquotedIdentifier(
         self, ctx: RikaiModelSchemaParser.UnquotedIdentifierContext
