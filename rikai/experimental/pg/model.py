@@ -14,15 +14,13 @@
 import json
 from typing import Any, Callable, Dict, Optional
 
-import torchvision.transforms as T
 from rikai.parquet.dataset import convert_tensor
-from rikai.pytorch.models.torch import ClassificationModelType, ObjectDetectionModelType
 from rikai.pytorch.models.feature_extractor import FeatureExtractorType
+from rikai.pytorch.models.torch import ClassificationModelType, ObjectDetectionModelType
 from rikai.spark.sql.codegen.dummy import DummyModelSpec
 from rikai.spark.sql.codegen.fs import FileModelSpec
 from rikai.spark.sql.model import ModelType
 from rikai.types import Image
-from torchvision.models.feature_extraction import create_feature_extractor
 
 from .logging import info
 from .schema import parse_schema
@@ -79,7 +77,7 @@ def load_model(
         "flavor": flavor,
         "modelType": model_type,
         "uri": uri,
-        "options": options,
+        "options": options if options else {},
     }
     if uri:
         spec = FileModelSpec(conf)
