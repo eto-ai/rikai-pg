@@ -24,6 +24,7 @@ CREATE TABLE ml.models (
 	model_type VARCHAR(128) NOT NULL,
 	uri VARCHAR(1024),
 	options JSONB DEFAULT '{}'::json
+	description TEXT,
 );
 CREATE INDEX IF NOT EXISTS model_flavor_idx
 ON ml.models (flavor, model_type);
