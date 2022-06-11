@@ -24,6 +24,7 @@ CREATE TABLE ml.models (
 	model_type VARCHAR(128) NOT NULL,
 	uri VARCHAR(1024),
 	options JSONB DEFAULT '{}'::json
+	description TEXT,
 );
 CREATE INDEX IF NOT EXISTS model_flavor_idx
 ON ml.models (flavor, model_type);
@@ -63,7 +64,6 @@ return torch.cuda.is_available()
 $$ LANGUAGE plpython3u;
 
 
-
 CREATE FUNCTION ml.cuda_info()
     RETURNS JSON
 AS $$
@@ -92,27 +92,8 @@ $$ LANGUAGE plpython3u;
 CREATE FUNCTION ml.create_model_trigger()
 RETURNS TRIGGER
 AS $$
-    model_name = TD["new"]["name"]
-    plpy.info("Creating model: ", model_name)
-    flavor = TD["new"]["flavor"]
-    model_type = TD["new"]["model_type"]
-    uri = TD["new"].get("uri")
-    if uri is not None:
-        # Quoted URI
-        uri = "'{}'".format(uri)
-    stmt = (
-		"CREATE FUNCTION ml.{}(img image) ".format(model_name) +
-		"RETURNS detection[] " +
-		"AS $BODY$\n" +
-        "    from rikai.experimental.pg.model import load_model\n" +
-        "    if 'model' not in SD:\n" +
-        "        plpy.info('Loading model: flavor={} type={})')\n".format(flavor, model_type) +
-        "        SD['model'] = load_model('{}', '{}', {})\n".format(flavor, model_type, uri) +
-        "    preds = SD['model'].predict(img)\n" +
-		"    return preds\n" +
-		"$BODY$ LANGUAGE plpython3u;"
-	)
-    plpy.execute(stmt)
+    from rikai.experimental.pg.model import create_model_trigger
+    create_model_trigger(TD)
     return None
 $$ LANGUAGE plpython3u;
 
@@ -120,6 +101,45 @@ CREATE TRIGGER create_model
 AFTER INSERT ON ml.models
 FOR EACH ROW
 EXECUTE FUNCTION ml.create_model_trigger();
+
+
+CREATE FUNCTION ml.train(
+    name TEXT,
+    model_type TEXT,
+    tablename TEXT,
+    columns TEXT[]
+)
+RETURNS BOOL
+AS $$
+    from rikai.experimental.pg.train import train
+    return train(name, model_type, tablename, columns)
+$$ LANGUAGE plpython3u;
+
+
+CREATE FUNCTION ml.train(
+    name TEXT,
+    model_type TEXT,
+    tablename TEXT,
+    col TEXT
+)
+RETURNS BOOL
+AS $$
+    from rikai.experimental.pg.train import train
+    return train(name, model_type, tablename, col)
+$$ LANGUAGE plpython3u;
+
+CREATE FUNCTION ml.train(
+    name TEXT,
+    model_type TEXT,
+    tablename TEXT,
+    col TEXT,
+    options JSONB
+)
+RETURNS BOOL
+AS $$
+    from rikai.experimental.pg.train import train
+    return train(name, model_type, tablename, col, options)
+$$ LANGUAGE plpython3u;
 
 -- Drop an model
 CREATE FUNCTION ml.delete_model_trigger()

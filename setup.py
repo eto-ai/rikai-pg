@@ -16,6 +16,7 @@
 
 from setuptools import find_namespace_packages, setup
 
+
 setup(
     name="pg-rikai",
     version="0.0.1",
@@ -24,7 +25,7 @@ setup(
     author_email="rikai-dev@eto.ai",
     url="https://github.com/eto-ai/rikai",
     python_requires=">=3.8",
-    install_requires=["rikai[pytorch]>=0.1.10"],
+    install_requires=["rikai[pytorch]>=0.1.11"],
     extras_require={"dev": ["black==22.1.0", "isort", "pytest", "wheel"]},
     packages=find_namespace_packages(include=["rikai.*"]),
 )

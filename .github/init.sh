@@ -7,14 +7,9 @@ CREATE EXTENSION rikai;
 INSERT INTO ml.models (name, flavor, model_type)
 VALUES ('ssd', 'pytorch', 'ssd');
 
-INSERT INTO ml.models (name, flavor, model_type, uri, options)
-VALUES (
-    'embedding',
-    'pytorch',
-    'feature_extractor',
-    's3://eto-public/models/resnet_features.pth',
-    '{"model_type": "resnet"}'::json
-);
+-- Test data
+-- See images in rikai/tests/conftest.py
+CREATE EXTENSION IF NOT EXISTS pgtap;  -- For unit test
 
 CREATE TABLE images (
 image_id SERIAL PRIMARY KEY,
@@ -27,5 +22,3 @@ VALUES
 
 
 EOF
-
-

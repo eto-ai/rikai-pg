@@ -12,13 +12,50 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+from pathlib import Path
+
+import pytest
+import torch
+import torchvision
+from rikai.pytorch.models.feature_extractor import FeatureExtractor
+
 from rikai.experimental.pg.model import load_model
+
+
+@pytest.fixture(scope="session")
+def resnet_path(tmp_path_factory: Path) -> Path:
+    model = torchvision.models.resnet50()
+
+    model_path = tmp_path_factory.mktemp("models") / "resnet.pth"
+    torch.save(model, model_path)
+    return model_path
+
+
+@pytest.fixture(scope="session")
+def resnet_features_path(tmp_path_factory: Path, resnet_path: Path) -> Path:
+    resnet = torch.load(resnet_path)
+    features_path = tmp_path_factory.mktemp("models") / "resnet_features.pth"
+    model = FeatureExtractor(resnet, node="avgpool")
+    torch.save(model, features_path)
+    return features_path
 
 
 def test_load_model():
     model = load_model("pytorch", "ssd")
     model.predict(
-        {
-            "uri": "http://farm2.staticflickr.com/1129/4726871278_4dd241a03a_z.jpg"
-        }
+        {"uri": "http://farm2.staticflickr.com/1129/4726871278_4dd241a03a_z.jpg"}
     )
+
+
+def test_embedding(resnet_features_path):
+    model = load_model(
+        "pytorch",
+        "feature_extractor",
+        uri=str(resnet_features_path),
+        options={"model_type": "resnet"},
+    )
+    with torch.no_grad():
+        print(model)
+        model.predict(
+            {"uri": "http://farm2.staticflickr.com/1129/4726871278_4dd241a03a_z.jpg"}
+        )

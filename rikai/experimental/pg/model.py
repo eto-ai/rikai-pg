@@ -1,4 +1,3 @@
-#  Copyright 2022 Rikai Authors
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -12,56 +11,73 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from typing import Optional
+import json
+from typing import Any, Callable, Dict, Optional
 
-import torch
-
+from rikai.parquet.dataset import convert_tensor
+from rikai.pytorch.models.feature_extractor import FeatureExtractorType
+from rikai.pytorch.models.torch import ClassificationModelType, ObjectDetectionModelType
 from rikai.spark.sql.codegen.dummy import DummyModelSpec
 from rikai.spark.sql.codegen.fs import FileModelSpec
 from rikai.spark.sql.model import ModelType
 from rikai.types import Image
 
+from .logging import info
+from .schema import parse_schema
+
 
 class PgModel:
+    """PostgreSQL Model"""
+
     def __init__(self, model_type: ModelType):
         self.model = model_type
+        self.transform: Optional[Callable] = self.model.transform()
+
+        self._is_vision_type = isinstance(
+            self.model,
+            (ClassificationModelType, ObjectDetectionModelType, FeatureExtractorType),
+        )
+
+    def schema(self) -> str:
+        return self.model.schema()
+
+    def args(self) -> str:
+        """Postgres UDF argument string"""
+        if self._is_vision_type:
+            return "example image"
+        else:
+            return "example real[]"
 
     def __repr__(self):
-        return f"PgModel({self.model})"
+        return f"PgModel(model={self.model})"
 
-    def predict(self, img):
-        tensor = torch.tensor(
-            self.model.transform()(Image(img["uri"]).to_numpy())
-        )
-        preds = self.model.predict([tensor])[0]
+    def _pg_to_rikai(self, data) -> Any:
+        if self._is_vision_type:
+            return Image(data["uri"])
+        return data
 
-        return [
-            {
-                "label": pred["label"],
-                "label_id": pred["label_id"],
-                "score": pred["score"],
-                "box": (
-                    (pred["box"].xmin, pred["box"].ymin),
-                    (pred["box"].xmax, pred["box"].ymax),
-                ),
-            }
-            for pred in preds
-        ]
+    def predict(self, data):
+        data = self._pg_to_rikai(data)
+        data = convert_tensor(data)
+        if self.transform:
+            data = self.transform(data)
+        preds = self.model(data.unsqueeze(0))
+        return preds[0]
 
 
 def load_model(
     flavor: str,
     model_type: str,
     uri: Optional[str] = None,
-    options: Optional[dict] = None
+    options: Optional[dict] = None,
 ) -> PgModel:
-    # TODO: move load model into rikai core.
     conf = {
         "version": "1.0",
         "name": f"load_{model_type}",
         "flavor": flavor,
         "modelType": model_type,
         "uri": uri,
+        "options": options if options else {},
     }
     if uri:
         spec = FileModelSpec(conf)
@@ -70,3 +86,30 @@ def load_model(
     model = spec.model_type
     model.load_model(spec)
     return PgModel(model)
+
+
+def create_model_trigger(td: Dict):
+    model_name = td["new"]["name"]
+    info("Creating model: {model_name}")
+    flavor = td["new"]["flavor"]
+    model_type = td["new"]["model_type"]
+    uri = td["new"].get("uri")
+    options = json.loads(td["new"].get("options", "{}"))
+
+    import plpy
+
+    model = load_model(flavor, model_type, uri, options)
+    if uri is not None:
+        # Quoted URI
+        uri = "'{}'".format(uri)
+    return_type = parse_schema(model.schema())
+    stmt = f"""CREATE FUNCTION ml.{model_name}({model.args()})
+RETURNS {return_type}
+AS $BODY$
+from rikai.experimental.pg.model import load_model
+if 'model' not in SD:
+    plpy.info('Loading model: flavor={flavor} type={model_type})')
+    SD['model'] = load_model('{flavor}', '{model_type}', {uri}, {options})
+return SD['model'].predict(example)
+$BODY$ LANGUAGE plpython3u;"""
+    plpy.execute(stmt)
